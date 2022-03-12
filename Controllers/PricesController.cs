@@ -17,7 +17,7 @@ namespace speedupApi.Controllers
     [HttpGet("{id}")]
     public async Task<IActionResult> GetpricesAsync(int id)
     {
-      return await _service.GetPricesAsync(id);
+      return new OkObjectResult(await _service.GetPricesAsync(id));
     }
 
     // POST api/prices/prepare/5

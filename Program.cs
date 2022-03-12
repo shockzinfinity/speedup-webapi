@@ -1,14 +1,17 @@
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using speedupApi.Data;
 using speedupApi.Exceptions;
 using speedupApi.Repositories;
 using speedupApi.Services;
+using speedupApi.Settings;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddDbContext<DefaultContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultDatabase")));
+
+builder.Services.Configure<ProductsSettings>(builder.Configuration.GetSection("Products"));
+builder.Services.Configure<PricesSettings>(builder.Configuration.GetSection("Prices"));
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -24,7 +27,8 @@ builder.Services.AddStackExchangeRedisCache(options =>
   options.Configuration = builder.Configuration.GetValue<string>("Redis:Host");
 });
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-builder.Services.AddHttpClient();
+//builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<ISelfHttpClient, SelfHttpClient>();
 builder.Services.AddLogging(l => l.AddFile("Logs/log.txt"));
 
 var app = builder.Build();
@@ -32,8 +36,8 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+  app.UseSwagger();
+  app.UseSwaggerUI();
 }
 
 app.UseMiddleware<ExceptionsHandlingMiddleware>();

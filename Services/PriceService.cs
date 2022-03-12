@@ -14,17 +14,10 @@ namespace speedupApi.Services
       _repository = repository ?? throw new ArgumentNullException(nameof(repository));
     }
 
-    public async Task<IActionResult> GetPricesAsync(int productId)
+    public async Task<IEnumerable<PriceViewModel>> GetPricesAsync(int productId)
     {
       IEnumerable<Price> prices = await _repository.GetPricesAsync(productId);
-      if (prices != null)
-      {
-        return new OkObjectResult(prices.Select(p => new PriceViewModel(p)).OrderBy(p => p.Price).ThenBy(p => p.Supplier));
-      }
-      else
-      {
-        return new NotFoundResult();
-      }
+      return prices.Select(p => new PriceViewModel(p)).OrderBy(p => p.Price).ThenBy(p => p.Supplier);
     }
 
     public async Task PreparePricesAsync(int productId)

@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using speedupApi.Exceptions;
 using speedupApi.Models;
 using speedupApi.Repositories;
 using speedupApi.ViewModels;
+using System.Net;
 
 namespace speedupApi.Services
 {
@@ -9,109 +10,69 @@ namespace speedupApi.Services
   {
     private readonly IProductRepository _repository;
     //private readonly IPriceService _pricesService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly string _apiUrl;
-    private readonly IHttpClientFactory _httpClientFactory;
+    //private readonly IHttpContextAccessor _httpContextAccessor;
+    //private readonly string _apiUrl;
+    //private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ISelfHttpClient _selfHttpClient;
 
-    public ProductService(IProductRepository repository, /*IPriceService pricesService*/ IHttpContextAccessor httpContextAccessor, IHttpClientFactory httpClientFactory)
+    public ProductService(IProductRepository repository, ISelfHttpClient selfHttpClient)
     {
       _repository = repository ?? throw new ArgumentNullException(nameof(repository));
       //_pricesService = pricesService ?? throw new ArgumentNullException(nameof(pricesService));
-      _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
-      _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-      _apiUrl = GetFullyQualifiedApiUrl("/api/prices/prepare/");
+      //_httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+      //_httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+      //_apiUrl = GetFullyQualifiedApiUrl("/api/prices/prepare/");
+      _selfHttpClient = selfHttpClient ?? throw new ArgumentNullException(nameof(selfHttpClient));
     }
 
-    private string GetFullyQualifiedApiUrl(string apiRout)
-    {
-      string apiUrl = string.Format("{0}://{1}{2}", _httpContextAccessor.HttpContext.Request.Scheme, _httpContextAccessor.HttpContext.Request.Host, apiRout);
-
-      return apiUrl;
-    }
-
-    public async Task<IActionResult> DeleteProductAsync(int productId)
+    public async Task<ProductViewModel> DeleteProductAsync(int productId)
     {
       Product product = await _repository.DeleteProductAsync(productId);
 
-      if (product != null)
-      {
-        return new OkObjectResult(new ProductViewModel(product));
-      }
-      else
-      {
-        return new NotFoundResult();
-      }
+      if (product == null)
+        throw new HttpException(HttpStatusCode.NotFound, "Product not found", $"Product Id: {productId}");
+
+      return new ProductViewModel(product);
     }
 
-    public async Task<IActionResult> FindProductsAsync(string sku)
+    public async Task<IEnumerable<ProductViewModel>> FindProductsAsync(string sku)
     {
       IEnumerable<Product> products = await _repository.FindProductsAsync(sku);
-      if (products != null)
+      if (products.Count() == 1)
       {
-        if (products.Count() == 1)
-        {
-          //await PreparePricesAsync(products.FirstOrDefault().ProductId);
-          ThreadPool.QueueUserWorkItem(delegate
-          {
-            PreparePricesAsync(products.FirstOrDefault().ProductId);
-          });
-        }
-
-        return new OkObjectResult(products.Select(p => new ProductViewModel(p)));
-      }
-      else
-      {
-        return new NotFoundResult();
-      }
-    }
-
-    public async Task<IActionResult> GetAllProductsAsync()
-    {
-      IEnumerable<Product> products = await _repository.GetAllProductsAsync();
-      if (products != null)
-      {
-        return new OkObjectResult(products.Select(p => new ProductViewModel(p)));
-      }
-      else
-      {
-        return new NotFoundResult();
-      }
-    }
-
-    public async Task<IActionResult> GetProductAsync(int productId)
-    {
-      Product product = await _repository.GetProductAsync(productId);
-      if (product != null)
-      {
-        //await PreparePricesAsync(product.ProductId);
+        //await PreparePricesAsync(products.FirstOrDefault().ProductId);
         ThreadPool.QueueUserWorkItem(delegate
         {
-          PreparePricesAsync(productId);
+          CallPreparePricesAsync(products.FirstOrDefault().ProductId.ToString());
         });
+      }
 
-        return new OkObjectResult(new ProductViewModel(product));
-      }
-      else
-      {
-        return new NotFoundResult();
-      }
+      return products.Select(p => new ProductViewModel(p));
     }
 
-    private async void PreparePricesAsync(int productId)
+    public async Task<IEnumerable<ProductViewModel>> GetAllProductsAsync()
     {
-      //await _pricesService.PreparePricesAsync(productId);
+      IEnumerable<Product> products = await _repository.GetAllProductsAsync();
+      return products.Select(p => new ProductViewModel(p));
+    }
 
-      var parameters = new Dictionary<string, string>();
-      var encodedContent = new FormUrlEncodedContent(parameters);
+    public async Task<ProductViewModel> GetProductAsync(int productId)
+    {
+      Product product = await _repository.GetProductAsync(productId);
+      if (product == null)
+        throw new HttpException(HttpStatusCode.NotFound, "Product not found", $"Product Id: {productId}");
+      //await PreparePricesAsync(product.ProductId);
+      ThreadPool.QueueUserWorkItem(delegate
+      {
+        CallPreparePricesAsync(productId.ToString());
+      });
 
-      try
-      {
-        HttpClient client = _httpClientFactory.CreateClient();
-        var result = await client.PostAsync(_apiUrl + productId, encodedContent).ConfigureAwait(false);
-      }
-      catch
-      {
-      }
+      return new ProductViewModel(product);
+    }
+
+    private async void CallPreparePricesAsync(string productId)
+    {
+      await _selfHttpClient.PostIdAsync("products/prepare", productId);
     }
   }
 }

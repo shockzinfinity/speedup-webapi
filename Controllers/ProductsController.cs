@@ -17,25 +17,25 @@ namespace speedupApi.Controllers
     [HttpGet]
     public async Task<IActionResult> GetAllProductsAsync()
     {
-      return await _service.GetAllProductsAsync();
+      return new OkObjectResult(await _service.GetAllProductsAsync());
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProductAsync(int id)
     {
-      return await _service.GetProductAsync(id);
+      return new OkObjectResult(await _service.GetProductAsync(id));
     }
 
     [HttpGet("find/{sku}")]
     public async Task<IActionResult> FindProductsAsync(string sku)
     {
-      return await _service.FindProductsAsync(sku);
+      return new OkObjectResult(await _service.FindProductsAsync(sku));
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProductAsync(int id)
     {
-      return await _service.DeleteProductAsync(id);
+      return new OkObjectResult(await _service.DeleteProductAsync(id));
     }
   }
 }
