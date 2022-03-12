@@ -30,6 +30,8 @@ builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 //builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<ISelfHttpClient, SelfHttpClient>();
 builder.Services.AddLogging(l => l.AddFile("Logs/log.txt"));
+builder.Services.AddScoped<IPricesCacheRepository, PriceCacheRepository>();
+builder.Services.AddScoped<IProductCacheRepository, ProductCacheRepository>();
 
 var app = builder.Build();
 
