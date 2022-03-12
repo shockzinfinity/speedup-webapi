@@ -8,12 +8,24 @@ namespace speedupApi.Services
   public class ProductService : IProductService
   {
     private readonly IProductRepository _repository;
-    private readonly IPriceService _pricesService;
+    //private readonly IPriceService _pricesService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly string _apiUrl;
 
-    public ProductService(IProductRepository repository, IPriceService pricesService)
+    public ProductService(IProductRepository repository, /*IPriceService pricesService*/ IHttpContextAccessor httpContextAccessor)
     {
       _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-      _pricesService = pricesService ?? throw new ArgumentNullException(nameof(pricesService));
+      //_pricesService = pricesService ?? throw new ArgumentNullException(nameof(pricesService));
+      _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+
+      _apiUrl = GetFullyQualifiedApiUrl("/api/prices/prepare/");
+    }
+
+    private string GetFullyQualifiedApiUrl(string apiRout)
+    {
+      string apiUrl = string.Format("{0}://{1}{2}", _httpContextAccessor.HttpContext.Request.Scheme, _httpContextAccessor.HttpContext.Request.Host, apiRout);
+
+      return apiUrl;
     }
 
     public async Task<IActionResult> DeleteProductAsync(int productId)
@@ -51,7 +63,11 @@ namespace speedupApi.Services
         {
           if (products.Count() == 1)
           {
-            await PreparePricesAsync(products.FirstOrDefault().ProductId);
+            //await PreparePricesAsync(products.FirstOrDefault().ProductId);
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+              PreparePricesAsync(products.FirstOrDefault().ProductId);
+            });
           }
 
           return new OkObjectResult(products.Select(p => new ProductViewModel()
@@ -104,7 +120,11 @@ namespace speedupApi.Services
         Product product = await _repository.GetProductAsync(productId);
         if (product != null)
         {
-          await PreparePricesAsync(product.ProductId);
+          //await PreparePricesAsync(product.ProductId);
+          ThreadPool.QueueUserWorkItem(delegate
+          {
+            PreparePricesAsync(productId);
+          });
 
           return new OkObjectResult(new ProductViewModel()
           {
@@ -124,9 +144,22 @@ namespace speedupApi.Services
       }
     }
 
-    private async Task PreparePricesAsync(int productId)
+    private async void PreparePricesAsync(int productId)
     {
-      await _pricesService.PreparePricesAsync(productId);
+      //await _pricesService.PreparePricesAsync(productId);
+      using (HttpClient client = new HttpClient())
+      {
+        var parameters = new Dictionary<string, string>();
+        var encodedContent = new FormUrlEncodedContent(parameters);
+
+        try
+        {
+          var result = await client.PostAsync(_apiUrl + productId, encodedContent).ConfigureAwait(false);
+        }
+        catch
+        {
+        }
+      }
     }
   }
 }

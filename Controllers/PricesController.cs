@@ -19,5 +19,14 @@ namespace speedupApi.Controllers
     {
       return await _service.GetPricesAsync(id);
     }
+
+    // POST api/prices/prepare/5
+    [HttpPost("prepare/{id}")]
+    public async Task<IActionResult> PreparePricessAsync(int id)
+    {
+      await _service.PreparePricesAsync(id);
+
+      return Ok();
+    }
   }
 }

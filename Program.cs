@@ -21,6 +21,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
   options.InstanceName = builder.Configuration.GetValue<string>("Redis:Name");
   options.Configuration = builder.Configuration.GetValue<string>("Redis:Host");
 });
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 var app = builder.Build();
 
