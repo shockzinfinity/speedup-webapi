@@ -8,10 +8,12 @@ namespace speedupApi.Services
   public class ProductService : IProductService
   {
     private readonly IProductRepository _repository;
+    private readonly IPriceService _pricesService;
 
-    public ProductService(IProductRepository repository)
+    public ProductService(IProductRepository repository, IPriceService pricesService)
     {
       _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+      _pricesService = pricesService ?? throw new ArgumentNullException(nameof(pricesService));
     }
 
     public async Task<IActionResult> DeleteProductAsync(int productId)
@@ -47,6 +49,11 @@ namespace speedupApi.Services
         IEnumerable<Product> products = await _repository.FindProductsAsync(sku);
         if (products != null)
         {
+          if (products.Count() == 1)
+          {
+            await PreparePricesAsync(products.FirstOrDefault().ProductId);
+          }
+
           return new OkObjectResult(products.Select(p => new ProductViewModel()
           {
             Id = p.ProductId,
@@ -97,6 +104,8 @@ namespace speedupApi.Services
         Product product = await _repository.GetProductAsync(productId);
         if (product != null)
         {
+          await PreparePricesAsync(product.ProductId);
+
           return new OkObjectResult(new ProductViewModel()
           {
             Id = product.ProductId,
@@ -113,6 +122,11 @@ namespace speedupApi.Services
       {
         return new ConflictResult();
       }
+    }
+
+    private async Task PreparePricesAsync(int productId)
+    {
+      await _pricesService.PreparePricesAsync(productId);
     }
   }
 }

@@ -4,7 +4,6 @@ using speedupApi.Data;
 using speedupApi.Models;
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace speedupApi.Repositories
 {
@@ -28,7 +27,7 @@ namespace speedupApi.Repositories
       IEnumerable<Price> prices = null;
       string cacheKey = "Prices: " + prodcutId;
       var pricesTemp = await _distributedCache.GetStringAsync(cacheKey);
-      if(pricesTemp != null)
+      if (pricesTemp != null)
       {
         prices = JsonSerializer.Deserialize<IEnumerable<Price>>(pricesTemp);
       }
@@ -40,6 +39,25 @@ namespace speedupApi.Repositories
         await _distributedCache.SetStringAsync(cacheKey, JsonSerializer.Serialize(prices), cacheOptions);
       }
       return prices;
+    }
+
+    public async Task PreparePricesAsync(int productId)
+    {
+      IEnumerable<Price> prices = null;
+      string cacheKey = "Prices: " + productId;
+
+      var pricesTemp = await _distributedCache.GetStringAsync(cacheKey);
+      if (pricesTemp != null)
+      {
+        return; // already cached
+      }
+      else
+      {
+        prices = await _context.Prices.FromSqlRaw("[dbo].[GetPricesByProductId] @productId = {0}", productId).ToListAsync();
+        DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromMinutes(_settings.PricesExpirationPeriod));
+        await _distributedCache.SetStringAsync(cacheKey, JsonSerializer.Serialize(prices), cacheOptions);
+      }
+      return;
     }
 
     private class Settings

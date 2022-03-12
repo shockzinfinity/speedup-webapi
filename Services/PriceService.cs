@@ -37,5 +37,16 @@ namespace speedupApi.Services
         return new ConflictResult();
       }
     }
+
+    public async Task PreparePricesAsync(int productId)
+    {
+      try
+      {
+        await _repository.PreparePricesAsync(productId);
+      }
+      catch (Exception ex)
+      {
+      }
+    }
   }
 }
