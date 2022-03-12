@@ -11,13 +11,14 @@ namespace speedupApi.Services
     //private readonly IPriceService _pricesService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly string _apiUrl;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public ProductService(IProductRepository repository, /*IPriceService pricesService*/ IHttpContextAccessor httpContextAccessor)
+    public ProductService(IProductRepository repository, /*IPriceService pricesService*/ IHttpContextAccessor httpContextAccessor, IHttpClientFactory httpClientFactory)
     {
       _repository = repository ?? throw new ArgumentNullException(nameof(repository));
       //_pricesService = pricesService ?? throw new ArgumentNullException(nameof(pricesService));
       _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
-
+      _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
       _apiUrl = GetFullyQualifiedApiUrl("/api/prices/prepare/");
     }
 
@@ -147,18 +148,17 @@ namespace speedupApi.Services
     private async void PreparePricesAsync(int productId)
     {
       //await _pricesService.PreparePricesAsync(productId);
-      using (HttpClient client = new HttpClient())
-      {
-        var parameters = new Dictionary<string, string>();
-        var encodedContent = new FormUrlEncodedContent(parameters);
 
-        try
-        {
-          var result = await client.PostAsync(_apiUrl + productId, encodedContent).ConfigureAwait(false);
-        }
-        catch
-        {
-        }
+      var parameters = new Dictionary<string, string>();
+      var encodedContent = new FormUrlEncodedContent(parameters);
+
+      try
+      {
+        HttpClient client = _httpClientFactory.CreateClient();
+        var result = await client.PostAsync(_apiUrl + productId, encodedContent).ConfigureAwait(false);
+      }
+      catch
+      {
       }
     }
   }
