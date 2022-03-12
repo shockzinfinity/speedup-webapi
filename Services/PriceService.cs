@@ -16,21 +16,14 @@ namespace speedupApi.Services
 
     public async Task<IActionResult> GetPricesAsync(int productId)
     {
-      try
+      IEnumerable<Price> prices = await _repository.GetPricesAsync(productId);
+      if (prices != null)
       {
-        IEnumerable<Price> prices = await _repository.GetPricesAsync(productId);
-        if (prices != null)
-        {
-          return new OkObjectResult(prices.Select(p => new PriceViewModel(p)).OrderBy(p => p.Price).ThenBy(p => p.Supplier));
-        }
-        else
-        {
-          return new NotFoundResult();
-        }
+        return new OkObjectResult(prices.Select(p => new PriceViewModel(p)).OrderBy(p => p.Price).ThenBy(p => p.Supplier));
       }
-      catch
+      else
       {
-        return new ConflictResult();
+        return new NotFoundResult();
       }
     }
 

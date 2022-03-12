@@ -31,107 +31,69 @@ namespace speedupApi.Services
 
     public async Task<IActionResult> DeleteProductAsync(int productId)
     {
-      try
-      {
-        Product product = await _repository.DeleteProductAsync(productId);
+      Product product = await _repository.DeleteProductAsync(productId);
 
-        if (product != null)
-        {
-          return new OkObjectResult(new ProductViewModel()
-          {
-            Id = product.ProductId,
-            Sku = product.Sku.Trim(),
-            Name = product.Name.Trim()
-          });
-        }
-        else
-        {
-          return new NotFoundResult();
-        }
-      }
-      catch
+      if (product != null)
       {
-        return new ConflictResult();
+        return new OkObjectResult(new ProductViewModel(product));
+      }
+      else
+      {
+        return new NotFoundResult();
       }
     }
 
     public async Task<IActionResult> FindProductsAsync(string sku)
     {
-      try
+      IEnumerable<Product> products = await _repository.FindProductsAsync(sku);
+      if (products != null)
       {
-        IEnumerable<Product> products = await _repository.FindProductsAsync(sku);
-        if (products != null)
+        if (products.Count() == 1)
         {
-          if (products.Count() == 1)
+          //await PreparePricesAsync(products.FirstOrDefault().ProductId);
+          ThreadPool.QueueUserWorkItem(delegate
           {
-            //await PreparePricesAsync(products.FirstOrDefault().ProductId);
-            ThreadPool.QueueUserWorkItem(delegate
-            {
-              PreparePricesAsync(products.FirstOrDefault().ProductId);
-            });
-          }
+            PreparePricesAsync(products.FirstOrDefault().ProductId);
+          });
+        }
 
-          return new OkObjectResult(products.Select(p => new ProductViewModel()
-          {
-            Id = p.ProductId,
-            Sku = p.Sku.Trim(),
-            Name = p.Name.Trim()
-          }));
-        }
-        else
-        {
-          return new NotFoundResult();
-        }
+        return new OkObjectResult(products.Select(p => new ProductViewModel(p)));
       }
-      catch
+      else
       {
-        return new ConflictResult();
+        return new NotFoundResult();
       }
     }
 
     public async Task<IActionResult> GetAllProductsAsync()
     {
-      try
+      IEnumerable<Product> products = await _repository.GetAllProductsAsync();
+      if (products != null)
       {
-        IEnumerable<Product> products = await _repository.GetAllProductsAsync();
-        if (products != null)
-        {
-          return new OkObjectResult(products.Select(p => new ProductViewModel(p)));
-        }
-        else
-        {
-          return new NotFoundResult();
-        }
+        return new OkObjectResult(products.Select(p => new ProductViewModel(p)));
       }
-      catch
+      else
       {
-        return new ConflictResult();
+        return new NotFoundResult();
       }
     }
 
     public async Task<IActionResult> GetProductAsync(int productId)
     {
-      try
+      Product product = await _repository.GetProductAsync(productId);
+      if (product != null)
       {
-        Product product = await _repository.GetProductAsync(productId);
-        if (product != null)
+        //await PreparePricesAsync(product.ProductId);
+        ThreadPool.QueueUserWorkItem(delegate
         {
-          //await PreparePricesAsync(product.ProductId);
-          ThreadPool.QueueUserWorkItem(delegate
-          {
-            PreparePricesAsync(productId);
-          });
+          PreparePricesAsync(productId);
+        });
 
-          return new OkObjectResult(new ProductViewModel(product));
-        }
-        else
-        {
-          return new NotFoundResult();
-        }
+        return new OkObjectResult(new ProductViewModel(product));
       }
-      catch
+      else
       {
-        return new ConflictResult();
+        return new NotFoundResult();
       }
     }
 

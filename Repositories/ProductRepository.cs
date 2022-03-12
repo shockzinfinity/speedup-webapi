@@ -28,6 +28,7 @@ namespace speedupApi.Repositories
     public async Task<IEnumerable<Product>> FindProductsAsync(string sku)
     {
       //return await _context.Products.Where(p => p.Sku == sku).ToListAsync();
+      //return await _context.Products.FromSqlRaw("[dbo].[GetProductBySKUError] @sku = {0}", sku).ToListAsync();
       return await _context.Products.FromSqlRaw("[dbo].[GetProductBySKU] @sku = {0}", sku).ToListAsync();
     }
 

@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using speedupApi.Data;
+using speedupApi.Exceptions;
 using speedupApi.Repositories;
 using speedupApi.Services;
 
@@ -23,6 +25,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddHttpClient();
+builder.Services.AddLogging(l => l.AddFile("Logs/log.txt"));
 
 var app = builder.Build();
 
@@ -32,6 +35,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<ExceptionsHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 
