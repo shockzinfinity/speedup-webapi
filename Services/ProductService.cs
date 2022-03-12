@@ -96,12 +96,7 @@ namespace speedupApi.Services
         IEnumerable<Product> products = await _repository.GetAllProductsAsync();
         if (products != null)
         {
-          return new OkObjectResult(products.Select(p => new ProductViewModel()
-          {
-            Id = p.ProductId,
-            Sku = p.Sku.Trim(),
-            Name = p.Name.Trim()
-          }));
+          return new OkObjectResult(products.Select(p => new ProductViewModel(p)));
         }
         else
         {
@@ -127,12 +122,7 @@ namespace speedupApi.Services
             PreparePricesAsync(productId);
           });
 
-          return new OkObjectResult(new ProductViewModel()
-          {
-            Id = product.ProductId,
-            Sku = product.Sku.Trim(),
-            Name = product.Name.Trim()
-          });
+          return new OkObjectResult(new ProductViewModel(product));
         }
         else
         {

@@ -21,11 +21,7 @@ namespace speedupApi.Services
         IEnumerable<Price> prices = await _repository.GetPricesAsync(productId);
         if (prices != null)
         {
-          return new OkObjectResult(prices.Select(p => new PriceViewModel
-          {
-            Price = p.Value,
-            Supplier = p.Supplier.Trim()
-          }).OrderBy(p => p.Price).ThenBy(p => p.Supplier));
+          return new OkObjectResult(prices.Select(p => new PriceViewModel(p)).OrderBy(p => p.Price).ThenBy(p => p.Supplier));
         }
         else
         {
